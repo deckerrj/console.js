@@ -1,4 +1,4 @@
-define(function () {
+define(['../lib/Directory'], function (Directory) {
   'use strict';
 
   function native (code) {
@@ -12,6 +12,8 @@ define(function () {
 
   return function (os) {
     let root = os.user.getRoot();
+    os.fs.root = new Directory('ROOT', root);
+    os.fs.root.name = '/';
     let binDir = os.fs.root.addDir('bin', root);
     /*
     binDir.addFile('cd', root, native(function (pathname) {
