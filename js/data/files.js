@@ -1,12 +1,15 @@
 define(['../lib/Directory'], function (Directory) {
   'use strict';
 
-  function native (code) {
+  function native (main) {
     return {
       isExecutable: true,
       isCompiled: true,
       isNative: true,
-      code
+      code: function (argv) {
+        main.call(this, argv);
+        this.kill();
+      }
     };
   }
 
@@ -31,22 +34,24 @@ define(['../lib/Directory'], function (Directory) {
     */
 
     binDir.addFile('pwd', rootUser, native(function (argv) {
-      this.stdout(this.cwd);
+      this.stdout.writeln(this.cwd);
     }));
 
     binDir.addFile('echo', rootUser, native(function (argv) {
       argv.shift();
-      this.stdout(argv.join(' '));
+      this.stdout.writeln(argv.join(' '));
     }));
 
     binDir.addFile('cat', rootUser, native(function (argv) {
-      this.stdin(data => {
+      let dataListener = data => {
         if (data === null) {
+          this.stdin.removeEventListener('data', dataListener);
           this.kill();
         } else {
-          this.stdout(data);
+          this.stdout.write(data);
         }
-      })
+      }
+      this.stdin.addEventListener('data', dataListener);
     }));
 
     binDir.addFile('ls', rootUser, native(function (argv) {
@@ -56,16 +61,16 @@ define(['../lib/Directory'], function (Directory) {
         let node = os.fs.realpath(this.cwd, argv[0]);
         if (node.isDirectory) {
           for (let dir of node.list()) {
-            this.stdout(dir);
+            this.stdout.writeln(dir);
           }
-        } else this.stdout(node);
+        } else this.stdout.writeln(node);
         return;
       }
       for (let arg of argv) {
         try {
-          this.stdout(os.fs.realpath(this.cwd, arg));
+          this.stdout.writeln(os.fs.realpath(this.cwd, arg));
         } catch (err) {
-          this.stdout(err.message || err);
+          this.stderr.writeln(err.message || err);
         }
       }
     }));
@@ -88,7 +93,7 @@ define(['../lib/Directory'], function (Directory) {
         paths = pathList;
       }
       for (let path of paths) {
-        this.stdout(path);
+        this.stdout.write(path);
       }
     }));
 

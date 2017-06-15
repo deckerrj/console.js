@@ -15,21 +15,33 @@ define(['./TTY'], function (TTY) {
       this.textBuffer = '';
     }
 
-    printLn (text) {
-      let line = document.createElement('span');
-      line.appendChild(document.createElement('span'))
-      line.innerHTML = text.replace(/ /g, '&nbsp;');
-      line.appendChild(document.createElement('br'));
-      this.rootElem.insertBefore(line, this.rootElem.lastChild);
+    createLine () {
+      if (this.currentLine) this.currentLine.parentElement.appendChild(document.createElement('br'));
+      let lineElem = document.createElement('span');
+      let textElem = document.createElement('span');
+      lineElem.appendChild(textElem);
+      this.rootElem.insertBefore(lineElem, this.rootElem.lastChild);
+      return textElem;
+    }
+
+    addText (text) {
+      if (!this.currentLine) this.currentLine = this.createLine();
+      let lines = text.split('\n');
+      for (let i = 0; i < lines.length; ++i) {
+        if (i > 0) {
+          this.currentLine = this.createLine();
+        }
+        this.currentLine.innerHTML += lines[i].replace(/ /g, '&nbsp;');
+      }
       this.rootElem.scrollTop = this.rootElem.scrollHeight;
     }
 
-    toStdout (text) {
-      this.printLn(text);
+    onStdout (text) {
+      this.addText(text);
     }
 
-    toStderr (text) {
-      this.printLn(text);
+    onStderr (text) {
+      this.addText(text);
     }
 
     keyDown (event) {
@@ -60,8 +72,8 @@ define(['./TTY'], function (TTY) {
             event.preventDefault();
             //this.emit('stdin', this.textBuffer);
             //this.stdin.emit('data', this.textBuffer);
-            this.printLn('$&nbsp;' + this.textBuffer.replace(/ /g, '&nbsp;'));
-            this.toStdin(this.textBuffer);
+            this.stdout.write(`$&nbsp;${this.textBuffer.replace(/ /g, '&nbsp;')}\n`);
+            this.stdin.write(this.textBuffer + '\n');
             this.textBuffer = '';
             break;
         }

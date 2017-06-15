@@ -8,19 +8,29 @@ define(function () {
     emit (eventName, ...args) {
       if (!this.handlers[eventName]) return;
       for (let handler of this.handlers[eventName]) {
-        setTimeout(function () { handler.apply(this, args); }, 0)
+        setTimeout(function () { handler.apply(this, args); }, 0);
       }
     }
 
-    on (eventName, handler) {
+    addEventListener (eventName, handler) {
       if (!this.handlers[eventName]) this.handlers[eventName] = [];
       this.handlers[eventName].push(handler);
+      return true;
     }
 
-    off (eventName, handler) {
-      if (!this.handlers[eventName]) return;
-      let idx = this.handlers[eventName].indexOf(handler);
-      if (idx >= 0) this.handlers.splice(idx, 1);
+    removeEventListener (eventName, handler) {
+      if (handler) {
+        let eventHandlers = this.handlers[eventName]
+        if (!eventHandlers) return false;
+        let idx = eventHandlers.indexOf(handler);
+        if (idx < 0) return false;
+        eventHandlers.splice(idx, 1);
+      } else if (eventName) {
+        delete this.handlers[eventName];
+      } else {
+        this.handlers = {};
+      }
+      return true;
     }
   };
 });

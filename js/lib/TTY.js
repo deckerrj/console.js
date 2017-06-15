@@ -5,43 +5,16 @@ define(['./Stream'], function (Stream) {
   }
   return class TTY {
     constructor () {
-      this._stdin = [];
+      this.stdin = new Stream();
+      this.stdout = new Stream(this.onStdout.bind(this));
+      this.stderr = new Stream(this.onStderr.bind(this));
     }
 
-    _removeHandler (handler) {
-      if (!handler) return;
-      let idx = this._stdin.indexOf(handler);
-      if (idx >= 0) this._stdin.splice(idx, 1);
-    }
-
-    stdin () {
-      let stream = Stream.Readable(handler => {
-        if (stream.handler) this._removeHandler(stream.handler);
-        stream.handler = handler;
-        this._stdin.push(handler);
-      }, close => this._removeHandler(stream.handler));
-      return stream;
-    }
-
-    stdout () {
-      return Stream.Writable(text => this.toStdout(text));
-    }
-
-    stderr () {
-      return Stream.Writable(text => this.toStderr(text));
-    }
-
-    toStdin (text) {
-      for (let handler of this._stdin) {
-        handler(text);
-      }
-    }
-
-    toStdout (text) {
+    onStdout (text) {
       ttyError();
     }
 
-    toStderr (text) {
+    onStderr (text) {
       ttyError();
     }
   };

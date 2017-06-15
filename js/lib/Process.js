@@ -1,4 +1,4 @@
-define(['./Stream'], function (Stream) {
+define(['./EventEmitter', './Stream'], function (EventEmitter, Stream) {
   'use strict';
   let processId = 0;
   function attrs (process) {
@@ -6,17 +6,15 @@ define(['./Stream'], function (Stream) {
     for (let attr of ['stdin', 'stdout', 'stderr', 'env', 'cwd']) obj[attr] = process[attr];
     return obj;
   }
-  // stdout.write
-  // stdin.on('line', ...);
-  /*
-  */
-  return class Process {
+
+  return class Process extends EventEmitter {
     constructor (fn, command, attr) {
+      super();
       this.processId = processId++;
       Object.assign(this, {
-        stdin: Stream.nullIn,
-        stdout: Stream.nullOut,
-        stderr: Stream.nullOut,
+        stdin: Stream.empty,
+        stdout: Stream.empty,
+        stderr: Stream.empty,
         env: {},
         cwd: null,
         children: {}
@@ -54,6 +52,8 @@ define(['./Stream'], function (Stream) {
       this.stdout.close();
       this.stderr.close();
       this.children = {};
+      this.emit('terminate', signal);
+      this.removeEventListener();
     }
   };
 })

@@ -31,19 +31,20 @@ define(['../util/parser', '../util/builtins'], function (parser, builtins) {
         if (!file) throw new Error(`${name}: No such file or directory`);
         if (!file.isFile) throw new Error(`${name}: is a directory`);
         if (!file.isExecutable) throw new Error(`${name}: is not exectuable`);
-        let child = process.spawn(file.code, argv, {
-          stdin: process.tty.stdin(),
-          stdout: process.tty.stdout(),
-          stderr: process.tty.stderr()
+        process.stdin.removeEventListener('data', process._onData);
+        let child = process.spawn(file.code, argv);
+        child.addEventListener('terminate', function (signal) {
+          process.stdin.addEventListener('data', process._onData);
         });
         child.run();
       } catch (err) {
         console.log(err);
-        process.stdout(err.message || err);
+        process.stderr.writeln(err.message || err);
       }
     }
 
-    function inputHandler (text) {
+    function onDataReady () {
+      let text = this.stdin.read();
       if (!text) return;
       let parsed = parser.line(text);
       for (let line of parsed.lines) {
@@ -57,7 +58,19 @@ define(['../util/parser', '../util/builtins'], function (parser, builtins) {
 
     let root = os.user.getRoot();
     binDir.addFile('sh', root, native(function (argv) {
-      this.stdin(inputHandler.bind(this));
+      let self = this;
+      this._onData = function (text) {
+        if (!text) return;
+        let parsed = parser.line(text.trim());
+        for (let line of parsed.lines) {
+          if (builtins[line[0]]) {
+            builtins[line[0]](self, os, line);
+          } else {
+            spawn(self, line);
+          }
+        }
+      };
+      this.stdin.addEventListener('data', this._onData);
     }));
   };
 });

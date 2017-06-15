@@ -10,15 +10,15 @@ define(['./lib/DocumentTTY', './os'], function (DocumentTTY, os) {
       let tty = new DocumentTTY(document.getElementById('console'));
       let shellFile = os.fs.file('/bin/sh');
       let shellProcess = os.process.spawn(shellFile.code, ['/bin/sh'], {
-        stdin: tty.stdin(),
-        stdout: tty.stdout(),
-        stderr: tty.stderr(),
+        stdin: tty.stdin,
+        stdout: tty.stdout,
+        stderr: tty.stderr,
         env: {PATH: '/bin:/home/bin', HOME: '/home'},
         cwd: os.fs.dir('/home'),
         tty
       });
       document.addEventListener('keydown', tty.keyDown);
-      tty.printLn('Type `help` for more information');
+      tty.stdout.write('Type `help` for more information\n');
       shellProcess.run();
     });
   }
