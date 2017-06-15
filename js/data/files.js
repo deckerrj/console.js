@@ -11,10 +11,10 @@ define(['../lib/Directory'], function (Directory) {
   }
 
   return function (os) {
-    let root = os.user.getRoot();
-    os.fs.root = new Directory('ROOT', root);
-    os.fs.root.name = '/';
-    let binDir = os.fs.root.addDir('bin', root);
+    let rootUser = os.user.getRoot();
+    let root = os.fs.root = new Directory('ROOT', rootUser);
+    root.name = '/';
+    let binDir = root.addDir('bin', rootUser);
     /*
     binDir.addFile('cd', root, native(function (pathname) {
       if (!pathname || !pathname.length) return;
@@ -30,16 +30,26 @@ define(['../lib/Directory'], function (Directory) {
     }));
     */
 
-    binDir.addFile('pwd', root, native(function (argv) {
+    binDir.addFile('pwd', rootUser, native(function (argv) {
       this.stdout(this.cwd);
     }));
 
-    binDir.addFile('echo', root, native(function (argv) {
+    binDir.addFile('echo', rootUser, native(function (argv) {
       argv.shift();
       this.stdout(argv.join(' '));
     }));
 
-    binDir.addFile('ls', root, native(function (argv) {
+    binDir.addFile('cat', rootUser, native(function (argv) {
+      this.stdin(data => {
+        if (data === null) {
+          this.kill();
+        } else {
+          this.stdout(data);
+        }
+      })
+    }));
+
+    binDir.addFile('ls', rootUser, native(function (argv) {
       argv.shift();
       if (!argv.length) argv.push(this.cwd);
       if (argv.length === 1) {
@@ -60,6 +70,58 @@ define(['../lib/Directory'], function (Directory) {
       }
     }));
 
-    os.fs.root.addDir('home', os.user.getPlayer());
+    binDir.addFile('glob', rootUser, native(function (argv) {
+      let pattern = argv[1];
+      let path = os.fs.joinpath(this.cwd, pattern);
+      let parts = os.fs.splitpath(path);
+      let paths = [os.fs.root];
+      while (parts.length) {
+        let pathList = [];
+        let part = parts.shift();
+        for (let path of paths) {
+          if (part === '*') {
+            Object.keys(path.children).forEach(child => pathList.push(path.children[child]));
+          } else {
+            if (path.children[part]) pathList.push(path.children[part]);
+          }
+        }
+        paths = pathList;
+      }
+      for (let path of paths) {
+        this.stdout(path);
+      }
+    }));
+
+    binDir.addFile('mkdir', rootUser, native(function (argv) {
+      if (!argv[1]) return;
+      let path = os.fs.joinpath(this.cwd, argv[1]);
+      let parent = os.fs.dirname(path);
+      let name = os.fs.basename(path);
+      os.fs.dir(parent).addDir(name, os.user.getPlayer());
+    }));
+
+    binDir.addFile('touch', rootUser, native(function (argv) {
+      if (!argv[1]) return;
+      let path = os.fs.joinpath(this.cwd, argv[1]);
+      let parent = os.fs.dirname(path);
+      let name = os.fs.basename(path);
+      os.fs.dir(parent).addFile(name, os.user.getPlayer());
+    }));
+
+    binDir.addFile('rmdir', rootUser, native(function (argv) {
+      if (!argv[1]) return;
+      let path = os.fs.joinpath(this.cwd, argv[1]);
+      let dir = os.fs.dir(path);
+      dir.remove();
+    }))
+
+    binDir.addFile('rm', rootUser, native(function (argv) {
+      if (!argv[1]) return;
+      let path = os.fs.joinpath(this.cwd, argv[1]);
+      let file = os.fs.file(path);
+      file.remove();
+    }))
+
+    root.addDir('home', os.user.getPlayer());
   };
 });

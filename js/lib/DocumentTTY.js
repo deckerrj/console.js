@@ -18,19 +18,37 @@ define(['./TTY'], function (TTY) {
     printLn (text) {
       let line = document.createElement('span');
       line.appendChild(document.createElement('span'))
-      line.innerHTML = text;
+      line.innerHTML = text.replace(/ /g, '&nbsp;');
       line.appendChild(document.createElement('br'));
       this.rootElem.insertBefore(line, this.rootElem.lastChild);
       this.rootElem.scrollTop = this.rootElem.scrollHeight;
     }
 
-    statusLine (text) {
-      return `$&nbsp;${text}`;
+    toStdout (text) {
+      this.printLn(text);
+    }
+
+    toStderr (text) {
+      this.printLn(text);
     }
 
     keyDown (event) {
       let oldText = this.textBuffer;
-      if (event.key.length === 1) {
+      if (event.ctrlKey) {
+        switch (event.code) {
+          case 'KeyD': // eof
+            this.emit('stdin', null);
+            break;
+          case 'KeyC': // SIGINT
+            break;
+          case 'KeyU': // SIGKILL
+            break;
+          case 'Backslash': // SIGQUIT
+            break;
+          case 'KeyZ': // suspend
+            break;
+        }
+      } else if (event.key.length === 1) {
         this.textBuffer += event.key;
       } else {
         switch (event.key) {
@@ -40,7 +58,10 @@ define(['./TTY'], function (TTY) {
             break;
           case 'Enter':
             event.preventDefault();
-            this.emit('stdin', this.textBuffer);
+            //this.emit('stdin', this.textBuffer);
+            //this.stdin.emit('data', this.textBuffer);
+            this.printLn('$&nbsp;' + this.textBuffer.replace(/ /g, '&nbsp;'));
+            this.toStdin(this.textBuffer);
             this.textBuffer = '';
             break;
         }

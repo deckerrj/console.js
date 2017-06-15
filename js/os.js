@@ -7,13 +7,6 @@ define(['./core/process', './core/fs', './core/user'], function (process, fs, us
     os.process = process.getRoot();
   }
 
-  function spawnShell (tty) {/*
-    let shell = new Shell(os, tty, {
-      PATH: '/bin:/home/bin'
-    });
-    return shell;
-  */}
-
   function system (shell, command, args) {
     let file;
     try {
@@ -36,5 +29,5 @@ define(['./core/process', './core/fs', './core/user'], function (process, fs, us
     throw new Error('Do not use exec');
   }
 
-  return os = {spawnShell, system, exec, fs, boot, user};
+  return os = {system, exec, fs, boot, user};
 });

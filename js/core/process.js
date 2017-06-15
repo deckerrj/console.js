@@ -1,9 +1,9 @@
-define(['../lib/Process'], function (Process) {
+define(['../lib/Process', '../lib/Signal'], function (Process, Signal) {
   'use strict';
   let rootProcess;
   function init () {
-    if (rootProcess) rootProcess.terminate();
-    rootProcess = new Process(['init'], {}, function() {});
+    if (rootProcess) rootProcess.kill(Signal.TERM);
+    rootProcess = new Process(null, ['init']);
   }
   function getRoot () { return rootProcess; }
   return {init, getRoot};

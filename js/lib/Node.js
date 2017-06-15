@@ -13,6 +13,10 @@ define(function () {
 
     toString () { return this.getFullPath(); }
 
+    remove () {
+      if (this.parent) delete this.parent.children[this.name]
+    }
+
     getFullPath (recurse) {
       if (this.parent) return `${this.parent.getFullPath(recurse || true)}/${this.name}`;
       return recurse ? '' : this.name;

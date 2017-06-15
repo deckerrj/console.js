@@ -11,36 +11,53 @@ define(['../util/parser', '../util/builtins'], function (parser, builtins) {
   }
 
   return function (os) {
-    let binDir = os.fs.realpath('/bin');
+    let binDir = os.fs.dir('/bin');
     function spawn (process, argv) {
-      let child = process.spawn(argv);
       let name = argv[0];
+      let paths;
       if (name.startsWith('./')) {
-        console.log(os.fs.realpath(process.cwd, name));
+        paths = [os.fs.joinpath(process.cwd, name)];
       } else {
-        let paths = process.env.PATH.split(':');
-        let validPath;
-        for (let path of paths) {
-          try {
-            validPath = os.fs.realpath(path, name);
-          } catch (e) {}
-        }
-        if (validPath) return validPath.code.call(child, argv);
+        paths = process.env.PATH.split(':').map(path => os.fs.joinpath(path, name));
+      }
+      let file;
+      for (let path of paths) {
+        try {
+          file = os.fs.file(path);
+          break;
+        } catch (err) {}
+      }
+      try {
+        if (!file) throw new Error(`${name}: No such file or directory`);
+        if (!file.isFile) throw new Error(`${name}: is a directory`);
+        if (!file.isExecutable) throw new Error(`${name}: is not exectuable`);
+        let child = process.spawn(file.code, argv, {
+          stdin: process.tty.stdin(),
+          stdout: process.tty.stdout(),
+          stderr: process.tty.stderr()
+        });
+        child.run();
+      } catch (err) {
+        console.log(err);
+        process.stdout(err.message || err);
       }
     }
 
     function inputHandler (text) {
-      let command = parser.line(text);
-      if (builtins[command[0]]) {
-        builtins[command[0]](this, os, command);
-      } else {
-        spawn(this, command);
+      if (!text) return;
+      let parsed = parser.line(text);
+      for (let line of parsed.lines) {
+        if (builtins[line[0]]) {
+          builtins[line[0]](this, os, line);
+        } else {
+          spawn(this, line);
+        }
       }
     }
 
     let root = os.user.getRoot();
     binDir.addFile('sh', root, native(function (argv) {
-      this.stdin(inputHandler);
+      this.stdin(inputHandler.bind(this));
     }));
   };
 });

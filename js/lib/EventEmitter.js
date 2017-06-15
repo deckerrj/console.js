@@ -16,5 +16,11 @@ define(function () {
       if (!this.handlers[eventName]) this.handlers[eventName] = [];
       this.handlers[eventName].push(handler);
     }
+
+    off (eventName, handler) {
+      if (!this.handlers[eventName]) return;
+      let idx = this.handlers[eventName].indexOf(handler);
+      if (idx >= 0) this.handlers.splice(idx, 1);
+    }
   };
 });

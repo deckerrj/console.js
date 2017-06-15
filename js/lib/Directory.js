@@ -23,6 +23,11 @@ define(['./Node', './File'], function (Node, File) {
       return file;
     }
 
+    remove () {
+      if (Object.keys(this.children).length > 0) throw new Error('Directory not empty');
+      super.remove();
+    }
+
     list () {
       return ['.', '..', ...Object.keys(this.children)];
     }

@@ -1,48 +1,58 @@
-define(function () {
+define(['./Stream'], function (Stream) {
   'use strict';
   let processId = 0;
+  function attrs (process) {
+    let obj = {};
+    for (let attr of ['stdin', 'stdout', 'stderr', 'env', 'cwd']) obj[attr] = process[attr];
+    return obj;
+  }
+  // stdout.write
+  // stdin.on('line', ...);
+  /*
+  */
   return class Process {
-    constructor (command, tty, cwd, env, fn) {
+    constructor (fn, command, attr) {
       this.processId = processId++;
-      Object.assign(this, {command, tty, cwd, env, fn});
-      this.children = {};
+      Object.assign(this, {
+        stdin: Stream.nullIn,
+        stdout: Stream.nullOut,
+        stderr: Stream.nullOut,
+        env: {},
+        cwd: null,
+        children: {}
+      }, {fn, command}, attr);
     }
 
     get name () { return command[0]; }
 
-    stdout (text) {
-      this.tty.printLn(text);
-    }
-
-    stdin (handler) {
-      this.tty.on('stdin', handler.bind(this));
-    }
-
     fork () {
-      let p = new Process(this.command, this.tty, this.cwd, this.env, this.fn);
+      let p = new Process(this.fn, this.command, attrs(this));
       this.children[p.processId] = p;
       return p;
     }
 
     run () {
-      this.fn.apply(this, this.command);
+      this.fn.call(this, this.command);
     }
 
-    spawn (command, env, fn) {
-      return this.fork().exec(command, env, fn);
+    spawn (fn, command, attr) {
+      return this.fork().exec(fn, command, attr);
     }
 
-    exec (command, env, fn){
+    exec (fn, command, attr){
       if (this.processId === 0) throw new Error('Cannot exec process 0');
-      env = env || this.env;
-      Object.assign(this, {command, env, fn});
+      // TODO: Merge env
+      Object.assign(this, {fn, command, env: this.env}, attr);
       return this;
     }
 
-    terminate () {
+    kill (signal) {
       for (let pid of Object.keys(this.children)) {
-        this.children[pid].terminate();
+        this.children[pid].kill(signal);
       }
+      this.stdin.close();
+      this.stdout.close();
+      this.stderr.close();
       this.children = {};
     }
   };
